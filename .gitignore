@@ -71,3 +71,8 @@ node_modules/
 
 # UV lock file changes (exclude modified lock file)
 # uv.lock
+
+# Startup script logs
+mcp-server.log
+cors-proxy.log
+web-server.log

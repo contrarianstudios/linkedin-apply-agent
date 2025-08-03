@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Apply Agent - Web App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            max-width: 1200px;
+            padding: 30px;
+        }
+        
+        .tool-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e3e6f0;
+            transition: all 0.3s ease;
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .tool-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+        
+        .tool-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            padding: 10px;
+            background: linear-gradient(45deg, #0077b5, #00a0dc);
+            color: white;
+            border-radius: 10px;
+        }
+        
+        .status-indicator {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: auto;
+        }
+        
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .results-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #0077b5;
+        }
+        
+        .btn-linkedin {
+            background: linear-gradient(45deg, #0077b5, #00a0dc);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-linkedin:hover {
+            background: linear-gradient(45deg, #005885, #0077b5);
+            transform: translateY(-2px);
+            color: white;
+        }
+        
+        .loading-spinner {
+            display: none;
+            margin-left: 10px;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            background: linear-gradient(45deg, #0077b5, #00a0dc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .form-control:focus {
+            border-color: #0077b5;
+            box-shadow: 0 0 0 0.2rem rgba(0, 119, 181, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4" style="background: rgba(0, 0, 0, 0.1);">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-linkedin"></i> LinkedIn Apply Agent
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span id="connection-status" class="status-indicator status-disconnected">
+                    <i class="bi bi-wifi-off"></i> Disconnected
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container main-container">
+        <div class="text-center mb-4">
+            <h1 class="display-4 mb-3">LinkedIn Apply Agent</h1>
+            <p class="lead">Automate your LinkedIn job search, research profiles, and analyze companies</p>
+            <button id="connect-btn" class="btn btn-linkedin btn-lg">
+                <i class="bi bi-power"></i> Connect to Server
+            </button>
+        </div>
+
+        <!-- Job Search Tool -->
+        <div class="tool-card">
+            <div class="tool-header">
+                <i class="bi bi-briefcase tool-icon"></i>
+                <div>
+                    <h3 class="mb-1">Job Search</h3>
+                    <p class="text-muted mb-0">Search for LinkedIn jobs with keywords</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <input type="text" id="job-search-input" class="form-control" 
+                           placeholder="e.g., Software Engineer, Product Manager, Data Scientist">
+                </div>
+                <div class="col-md-4">
+                    <button id="search-jobs-btn" class="btn btn-linkedin w-100" disabled>
+                        <i class="bi bi-search"></i> Search Jobs
+                        <div class="loading-spinner spinner-border spinner-border-sm"></div>
+                    </button>
+                </div>
+            </div>
+            <div id="job-results" class="results-container" style="display: none;"></div>
+        </div>
+
+        <!-- Profile Lookup Tool -->
+        <div class="tool-card">
+            <div class="tool-header">
+                <i class="bi bi-person-circle tool-icon"></i>
+                <div>
+                    <h3 class="mb-1">Profile Lookup</h3>
+                    <p class="text-muted mb-0">Get detailed LinkedIn profile information</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <input type="text" id="profile-input" class="form-control" 
+                           placeholder="e.g., johndoe, jane-smith, linkedin-username">
+                </div>
+                <div class="col-md-4">
+                    <button id="lookup-profile-btn" class="btn btn-linkedin w-100" disabled>
+                        <i class="bi bi-person-check"></i> Lookup Profile
+                        <div class="loading-spinner spinner-border spinner-border-sm"></div>
+                    </button>
+                </div>
+            </div>
+            <div id="profile-results" class="results-container" style="display: none;"></div>
+        </div>
+
+        <!-- Company Research Tool -->
+        <div class="tool-card">
+            <div class="tool-header">
+                <i class="bi bi-building tool-icon"></i>
+                <div>
+                    <h3 class="mb-1">Company Research</h3>
+                    <p class="text-muted mb-0">Analyze companies and their employees</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <input type="text" id="company-input" class="form-control" 
+                           placeholder="e.g., Microsoft, Google, Apple">
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="include-employees">
+                        <label class="form-check-label" for="include-employees">
+                            Include Employees
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button id="research-company-btn" class="btn btn-linkedin w-100" disabled>
+                        <i class="bi bi-building-check"></i> Research
+                        <div class="loading-spinner spinner-border spinner-border-sm"></div>
+                    </button>
+                </div>
+            </div>
+            <div id="company-results" class="results-container" style="display: none;"></div>
+        </div>
+
+        <!-- Recommended Jobs Tool -->
+        <div class="tool-card">
+            <div class="tool-header">
+                <i class="bi bi-star tool-icon"></i>
+                <div>
+                    <h3 class="mb-1">Recommended Jobs</h3>
+                    <p class="text-muted mb-0">Get personalized job recommendations</p>
+                </div>
+            </div>
+            <button id="get-recommendations-btn" class="btn btn-linkedin" disabled>
+                <i class="bi bi-stars"></i> Get My Recommendations
+                <div class="loading-spinner spinner-border spinner-border-sm"></div>
+            </button>
+            <div id="recommendations-results" class="results-container" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class LinkedInWebApp {
+            constructor() {
+                this.baseUrl = 'http://localhost:9000';
+                this.sessionId = null;
+                this.initialized = false;
+                this.session = null;
+                
+                this.initializeEventListeners();
+            }
+            
+            initializeEventListeners() {
+                // Connection
+                document.getElementById('connect-btn').addEventListener('click', () => this.connect());
+                
+                // Job search
+                document.getElementById('search-jobs-btn').addEventListener('click', () => this.searchJobs());
+                document.getElementById('job-search-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.searchJobs();
+                });
+                
+                // Profile lookup
+                document.getElementById('lookup-profile-btn').addEventListener('click', () => this.lookupProfile());
+                document.getElementById('profile-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.lookupProfile();
+                });
+                
+                // Company research
+                document.getElementById('research-company-btn').addEventListener('click', () => this.researchCompany());
+                document.getElementById('company-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.researchCompany();
+                });
+                
+                // Recommendations
+                document.getElementById('get-recommendations-btn').addEventListener('click', () => this.getRecommendations());
+            }
+            
+            updateConnectionStatus(status) {
+                const statusElement = document.getElementById('connection-status');
+                const connectBtn = document.getElementById('connect-btn');
+                
+                statusElement.className = 'status-indicator';
+                
+                switch (status) {
+                    case 'connected':
+                        statusElement.classList.add('status-connected');
+                        statusElement.innerHTML = '<i class="bi bi-wifi"></i> Connected';
+                        connectBtn.innerHTML = '<i class="bi bi-power"></i> Disconnect';
+                        this.enableButtons(true);
+                        break;
+                    case 'connecting':
+                        statusElement.classList.add('status-loading');
+                        statusElement.innerHTML = '<i class="bi bi-arrow-repeat"></i> Connecting...';
+                        connectBtn.disabled = true;
+                        break;
+                    case 'disconnected':
+                        statusElement.classList.add('status-disconnected');
+                        statusElement.innerHTML = '<i class="bi bi-wifi-off"></i> Disconnected';
+                        connectBtn.innerHTML = '<i class="bi bi-power"></i> Connect to Server';
+                        connectBtn.disabled = false;
+                        this.enableButtons(false);
+                        break;
+                }
+            }
+            
+            enableButtons(enabled) {
+                const buttons = [
+                    'search-jobs-btn',
+                    'lookup-profile-btn', 
+                    'research-company-btn',
+                    'get-recommendations-btn'
+                ];
+                
+                buttons.forEach(id => {
+                    document.getElementById(id).disabled = !enabled;
+                });
+            }
+            
+            async connect() {
+                if (this.initialized) {
+                    // Disconnect
+                    this.initialized = false;
+                    this.sessionId = null;
+                    this.updateConnectionStatus('disconnected');
+                    return;
+                }
+                
+                this.updateConnectionStatus('connecting');
+                
+                try {
+                    const headers = {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json, text/event-stream'
+                    };
+                    
+                    const payload = {
+                        "jsonrpc": "2.0",
+                        "method": "initialize", 
+                        "params": {
+                            "protocolVersion": "2024-11-05",
+                            "capabilities": {},
+                            "clientInfo": {
+                                "name": "linkedin-web-app",
+                                "version": "1.0.0"
+                            }
+                        },
+                        "id": 1
+                    };
+                    
+                    const response = await fetch(this.baseUrl, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.ok) {
+                        this.sessionId = response.headers.get('mcp-session-id');
+                        
+                        // Send initialized notification
+                        await this.sendInitializedNotification();
+                        
+                        this.initialized = true;
+                        this.updateConnectionStatus('connected');
+                        this.showMessage('success', 'Successfully connected to LinkedIn MCP Server!');
+                    } else {
+                        throw new Error(`Server responded with status: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error('Connection error:', error);
+                    this.updateConnectionStatus('disconnected');
+                    this.showMessage('error', `Connection failed: ${error.message}`);
+                }
+            }
+            
+            async sendInitializedNotification() {
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json, text/event-stream'
+                };
+                
+                if (this.sessionId) {
+                    headers['mcp-session-id'] = this.sessionId;
+                }
+                
+                const payload = {
+                    "jsonrpc": "2.0",
+                    "method": "notifications/initialized"
+                };
+                
+                await fetch(this.baseUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+            }
+            
+            async callTool(toolName, args = {}) {
+                if (!this.initialized) {
+                    this.showMessage('error', 'Please connect to the server first');
+                    return null;
+                }
+                
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json, text/event-stream'
+                };
+                
+                if (this.sessionId) {
+                    headers['mcp-session-id'] = this.sessionId;
+                }
+                
+                const payload = {
+                    "jsonrpc": "2.0",
+                    "method": "tools/call",
+                    "params": {
+                        "name": toolName,
+                        "arguments": args
+                    },
+                    "id": Date.now()
+                };
+                
+                try {
+                    const response = await fetch(this.baseUrl, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.ok) {
+                        const responseText = await response.text();
+                        
+                        // Handle SSE response
+                        if (responseText.includes('data:')) {
+                            const lines = responseText.trim().split('\n');
+                            for (const line of lines) {
+                                if (line.startsWith('data:')) {
+                                    const dataJson = line.substring(5).trim();
+                                    try {
+                                        return JSON.parse(dataJson);
+                                    } catch (e) {
+                                        continue;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Fallback to regular JSON
+                        try {
+                            return JSON.parse(responseText);
+                        } catch (e) {
+                            return { raw_response: responseText };
+                        }
+                    } else {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error('Tool call error:', error);
+                    this.showMessage('error', `Tool call failed: ${error.message}`);
+                    return null;
+                }
+            }
+            
+            async searchJobs() {
+                const searchTerm = document.getElementById('job-search-input').value.trim();
+                if (!searchTerm) {
+                    this.showMessage('error', 'Please enter a search term');
+                    return;
+                }
+                
+                this.setLoading('search-jobs-btn', true);
+                
+                try {
+                    const result = await this.callTool('search_jobs', { search_term: searchTerm });
+                    
+                    if (result && result.result) {
+                        // Check for structured content first, then fall back to regular result
+                        const jobs = result.result.structuredContent?.result || result.result;
+                        console.log('Job search result:', jobs);
+                        this.displayJobResults(jobs);
+                    } else {
+                        console.log('No result found:', result);
+                        this.showMessage('error', 'No jobs found or error occurred');
+                    }
+                } finally {
+                    this.setLoading('search-jobs-btn', false);
+                }
+            }
+            
+            async lookupProfile() {
+                const username = document.getElementById('profile-input').value.trim();
+                if (!username) {
+                    this.showMessage('error', 'Please enter a LinkedIn username');
+                    return;
+                }
+                
+                this.setLoading('lookup-profile-btn', true);
+                
+                try {
+                    const result = await this.callTool('get_person_profile', { linkedin_username: username });
+                    
+                    if (result && result.result) {
+                        // Check for structured content first, then fall back to regular result
+                        const profile = result.result.structuredContent || result.result;
+                        console.log('Profile data being passed to display:', profile);
+                        this.displayProfileResults(profile);
+                    } else {
+                        this.showMessage('error', 'Profile not found or error occurred');
+                    }
+                } finally {
+                    this.setLoading('lookup-profile-btn', false);
+                }
+            }
+            
+            async researchCompany() {
+                const companyName = document.getElementById('company-input').value.trim();
+                if (!companyName) {
+                    this.showMessage('error', 'Please enter a company name');
+                    return;
+                }
+                
+                const includeEmployees = document.getElementById('include-employees').checked;
+                
+                this.setLoading('research-company-btn', true);
+                
+                try {
+                    const result = await this.callTool('get_company_profile', { 
+                        company_name: companyName,
+                        get_employees: includeEmployees
+                    });
+                    
+                    if (result && result.result) {
+                        // Check for structured content first, then fall back to regular result
+                        const company = result.result.structuredContent || result.result;
+                        console.log('Company data being passed to display:', company);
+                        this.displayCompanyResults(company);
+                    } else {
+                        this.showMessage('error', 'Company not found or error occurred');
+                    }
+                } finally {
+                    this.setLoading('research-company-btn', false);
+                }
+            }
+            
+            async getRecommendations() {
+                this.setLoading('get-recommendations-btn', true);
+                
+                try {
+                    const result = await this.callTool('get_recommended_jobs');
+                    
+                    if (result && result.result) {
+                        // Check for structured content first, then fall back to regular result  
+                        const recommendations = result.result.structuredContent?.result || result.result.structuredContent || result.result;
+                        console.log('Recommendations result structure:', result.result);
+                        console.log('Recommendations being passed to display:', recommendations);
+                        this.displayRecommendationResults(recommendations);
+                    } else {
+                        this.showMessage('error', 'No recommendations found or error occurred');
+                    }
+                } finally {
+                    this.setLoading('get-recommendations-btn', false);
+                }
+            }
+            
+            displayJobResults(jobs) {
+                const container = document.getElementById('job-results');
+                container.style.display = 'block';
+                
+                if (!Array.isArray(jobs) || jobs.length === 0) {
+                    container.innerHTML = '<p>No jobs found.</p>';
+                    return;
+                }
+                
+                const html = jobs.map(job => `
+                    <div class="result-item">
+                        <h5>${job.job_title || 'Unknown Title'}</h5>
+                        <p><strong>Company:</strong> ${job.company || 'Unknown Company'}</p>
+                        <p><strong>Location:</strong> ${job.location || 'Unknown Location'}</p>
+                        <p><strong>Posted:</strong> ${job.posted_date || 'Unknown Date'}</p>
+                        ${job.applicant_count ? `<p><strong>Applicants:</strong> ${job.applicant_count}</p>` : ''}
+                        ${job.linkedin_url ? `<a href="${job.linkedin_url}" target="_blank" class="btn btn-sm btn-linkedin">View Job</a>` : ''}
+                    </div>
+                `).join('');
+                
+                container.innerHTML = html;
+            }
+            
+            displayProfileResults(profile) {
+                const container = document.getElementById('profile-results');
+                container.style.display = 'block';
+                
+                console.log('Profile data in display function:', profile);
+                console.log('Profile name field:', profile?.name);
+                console.log('Profile job_title field:', profile?.job_title);
+                console.log('Profile company field:', profile?.company);
+                
+                let html = `
+                    <div class="result-item">
+                        <h4>${profile?.name || 'Unknown Name'}</h4>
+                        <p><strong>Job Title:</strong> ${profile?.job_title || 'No job title'}</p>
+                        <p><strong>Company:</strong> ${profile?.company || 'No company'}</p>
+                        <p><strong>About:</strong> ${profile?.about ? profile.about.substring(0, 200) + '...' : 'No about section'}</p>
+                `;
+                
+                if (profile?.experiences && profile.experiences.length > 0) {
+                    html += '<h6>Experience:</h6><ul>';
+                    profile.experiences.slice(0, 3).forEach(exp => {
+                        html += `<li><strong>${exp?.position_title || 'Unknown Title'}</strong> at ${exp?.company || 'Unknown Company'} (${exp?.duration || 'Unknown duration'})</li>`;
+                    });
+                    html += '</ul>';
+                }
+                
+                if (profile?.educations && profile.educations.length > 0) {
+                    html += '<h6>Education:</h6><ul>';
+                    profile.educations.slice(0, 2).forEach(edu => {
+                        html += `<li><strong>${edu?.institution || 'Unknown School'}</strong> - ${edu?.degree || 'Unknown Degree'}</li>`;
+                    });
+                    html += '</ul>';
+                }
+                
+                html += '</div>';
+                container.innerHTML = html;
+            }
+            
+            displayCompanyResults(company) {
+                const container = document.getElementById('company-results');
+                container.style.display = 'block';
+                
+                console.log('Company data:', company);
+                
+                let html = `
+                    <div class="result-item">
+                        <h4>${company?.name || 'Unknown Company'}</h4>
+                        <p><strong>Industry:</strong> ${company?.industry || 'Unknown Industry'}</p>
+                        <p><strong>Size:</strong> ${company?.company_size || 'Unknown Size'}</p>
+                        <p><strong>Headquarters:</strong> ${company?.headquarters || 'Unknown Location'}</p>
+                        <p><strong>Website:</strong> ${company?.website ? `<a href="${company.website}" target="_blank">${company.website}</a>` : 'No website'}</p>
+                        ${company?.about_us ? `<p><strong>About:</strong> ${company.about_us.substring(0, 300)}...</p>` : ''}
+                        ${company?.specialties ? `<p><strong>Specialties:</strong> ${company.specialties.substring(0, 200)}...</p>` : ''}
+                `;
+                
+                if (company.employees && company.employees.length > 0) {
+                    html += '<h6>Key Employees:</h6><ul>';
+                    company.employees.slice(0, 5).forEach(emp => {
+                        html += `<li>${emp.name || 'Unknown Name'} - ${emp.title || 'Unknown Title'}</li>`;
+                    });
+                    html += '</ul>';
+                }
+                
+                html += '</div>';
+                container.innerHTML = html;
+            }
+            
+            displayRecommendationResults(recommendations) {
+                const container = document.getElementById('recommendations-results');
+                container.style.display = 'block';
+                
+                console.log('Recommendations data:', recommendations);
+                console.log('Recommendations type:', typeof recommendations);
+                console.log('Recommendations length:', Array.isArray(recommendations) ? recommendations.length : 'Not an array');
+                
+                if (!Array.isArray(recommendations) || recommendations.length === 0) {
+                    container.innerHTML = `
+                        <div class="result-item" style="text-align: center; padding: 30px;">
+                            <i class="bi bi-info-circle" style="font-size: 48px; color: #6c757d; margin-bottom: 15px;"></i>
+                            <h5>No Personalized Recommendations Available</h5>
+                            <p class="text-muted">LinkedIn doesn't have personalized job recommendations for this account yet.</p>
+                            <p class="text-muted"><strong>Tip:</strong> Try updating your LinkedIn profile, adding skills, or browsing jobs on LinkedIn to get personalized recommendations.</p>
+                            <small class="text-muted">You can still use the <strong>Job Search</strong> feature above to find specific jobs!</small>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // If we have recommendations, display them as job cards
+                const html = recommendations.map(job => `
+                    <div class="result-item">
+                        <h5>${job.job_title || 'Unknown Title'}</h5>
+                        <p><strong>Company:</strong> ${job.company || 'Unknown Company'}</p>
+                        <p><strong>Location:</strong> ${job.location || 'Unknown Location'}</p>
+                        <p><strong>Posted:</strong> ${job.posted_date || 'Unknown Date'}</p>
+                        ${job.applicant_count ? `<p><strong>Applicants:</strong> ${job.applicant_count}</p>` : ''}
+                        ${job.linkedin_url ? `<a href="${job.linkedin_url}" target="_blank" class="btn btn-sm btn-linkedin">View Job</a>` : ''}
+                    </div>
+                `).join('');
+                
+                container.innerHTML = html;
+            }
+            
+            setLoading(buttonId, loading) {
+                const button = document.getElementById(buttonId);
+                const spinner = button.querySelector('.loading-spinner');
+                
+                if (loading) {
+                    button.disabled = true;
+                    spinner.style.display = 'inline-block';
+                } else {
+                    button.disabled = !this.initialized;
+                    spinner.style.display = 'none';
+                }
+            }
+            
+            showMessage(type, message) {
+                // Create a temporary message element
+                const messageDiv = document.createElement('div');
+                messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+                messageDiv.textContent = message;
+                
+                // Insert after navbar
+                const navbar = document.querySelector('.navbar');
+                navbar.parentNode.insertBefore(messageDiv, navbar.nextSibling);
+                
+                // Remove after 5 seconds
+                setTimeout(() => {
+                    messageDiv.remove();
+                }, 5000);
+            }
+        }
+        
+        // Initialize the app when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new LinkedInWebApp();
+        });
+    </script>
+</body>
+</html> 
