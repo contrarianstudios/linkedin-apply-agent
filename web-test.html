@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn MCP Server - Web Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 5px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0052a3; }
+        input[type="text"] { padding: 8px; width: 300px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        .result { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 4px; white-space: pre-wrap; }
+        .error { background: #ffeaea; color: #d00; }
+        .success { background: #eafff0; color: #080; }
+        .loading { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LinkedIn MCP Server - Web Integration Test</h1>
+        
+        <div class="section">
+            <h2>Server Status</h2>
+            <button onclick="checkServerStatus()">Check Server Status</button>
+            <div id="status-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>Available Tools</h2>
+            <button onclick="listTools()">List Available Tools</button>
+            <div id="tools-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>Job Search</h2>
+            <input type="text" id="search-term" placeholder="Enter job search term (e.g., 'software engineer')" value="software engineer">
+            <button onclick="searchJobs()">Search Jobs</button>
+            <div id="jobs-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>Profile Lookup</h2>
+            <input type="text" id="username" placeholder="Enter LinkedIn username (e.g., 'stickerdaniel')" value="stickerdaniel">
+            <button onclick="getProfile()">Get Profile</button>
+            <div id="profile-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>Company Information</h2>
+            <input type="text" id="company" placeholder="Enter company name (e.g., 'anthropic')" value="anthropic">
+            <button onclick="getCompany()">Get Company Info</button>
+            <div id="company-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/mcp';
+        let requestId = 1;
+
+        async function makeRequest(method, params = {}) {
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: "2.0",
+                        method: method,
+                        params: params,
+                        id: requestId++
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                throw new Error(`Network error: ${error.message}`);
+            }
+        }
+
+        async function checkServerStatus() {
+            const resultDiv = document.getElementById('status-result');
+            resultDiv.innerHTML = '<div class="loading">Checking server status...</div>';
+            
+            try {
+                const result = await makeRequest('tools/list');
+                if (result.result) {
+                    resultDiv.innerHTML = '<div class="success">✅ Server is running and responsive!</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error">❌ Server responded but with an error: ' + JSON.stringify(result) + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">❌ Server is not accessible: ' + error.message + '</div>';
+            }
+        }
+
+        async function listTools() {
+            const resultDiv = document.getElementById('tools-result');
+            resultDiv.innerHTML = '<div class="loading">Loading tools...</div>';
+            
+            try {
+                const result = await makeRequest('tools/list');
+                if (result.result && result.result.tools) {
+                    const tools = result.result.tools.map(tool => 
+                        `• ${tool.name}: ${tool.description}`
+                    ).join('\n');
+                    resultDiv.innerHTML = `<div class="success">Available Tools:\n\n${tools}</div>`;
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Error: ' + JSON.stringify(result) + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            }
+        }
+
+        async function searchJobs() {
+            const searchTerm = document.getElementById('search-term').value;
+            const resultDiv = document.getElementById('jobs-result');
+            
+            if (!searchTerm) {
+                resultDiv.innerHTML = '<div class="error">Please enter a search term</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="loading">Searching jobs...</div>';
+            
+            try {
+                const result = await makeRequest('tools/call', {
+                    name: 'search_jobs',
+                    arguments: { search_term: searchTerm }
+                });
+                
+                if (result.result && result.result.content) {
+                    const jobs = result.result.content[0].structuredContent.result;
+                    if (jobs && jobs.length > 0) {
+                        const jobsHtml = jobs.map(job => 
+                            `📍 ${job.job_title}\n   Company: ${job.company}\n   Location: ${job.location}\n   URL: ${job.linkedin_url}\n`
+                        ).join('\n');
+                        resultDiv.innerHTML = `<div class="success">Found ${jobs.length} jobs:\n\n${jobsHtml}</div>`;
+                    } else {
+                        resultDiv.innerHTML = '<div class="error">No jobs found</div>';
+                    }
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Error: ' + JSON.stringify(result) + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            }
+        }
+
+        async function getProfile() {
+            const username = document.getElementById('username').value;
+            const resultDiv = document.getElementById('profile-result');
+            
+            if (!username) {
+                resultDiv.innerHTML = '<div class="error">Please enter a username</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="loading">Getting profile...</div>';
+            
+            try {
+                const result = await makeRequest('tools/call', {
+                    name: 'get_person_profile',
+                    arguments: { linkedin_username: username }
+                });
+                
+                if (result.result) {
+                    resultDiv.innerHTML = '<div class="success">Profile Data:\n\n' + JSON.stringify(result.result, null, 2) + '</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Error: ' + JSON.stringify(result) + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            }
+        }
+
+        async function getCompany() {
+            const company = document.getElementById('company').value;
+            const resultDiv = document.getElementById('company-result');
+            
+            if (!company) {
+                resultDiv.innerHTML = '<div class="error">Please enter a company name</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="loading">Getting company info...</div>';
+            
+            try {
+                const result = await makeRequest('tools/call', {
+                    name: 'get_company_profile',
+                    arguments: { company_name: company, get_employees: false }
+                });
+                
+                if (result.result) {
+                    resultDiv.innerHTML = '<div class="success">Company Data:\n\n' + JSON.stringify(result.result, null, 2) + '</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Error: ' + JSON.stringify(result) + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            }
+        }
+
+        // Auto-check server status on page load
+        window.onload = function() {
+            checkServerStatus();
+        };
+    </script>
+</body>
+</html> 
